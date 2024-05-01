@@ -18,4 +18,8 @@ buildscript {
     }
 }
 
+project.ext.react = [
+    enableHermes: true  // <- make sure this is set to true
+]
+
 apply plugin: "com.facebook.react.rootproject"
