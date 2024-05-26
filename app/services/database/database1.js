@@ -1525,6 +1525,63 @@ async function saveError(error, FormId) {
   return error.ErrorId;
 }
 
+// Signature
+const getAuditSignature = async auditCode => {
+  const query = 'SELECT Signature FROM tb_audit_signature WHERE AuditCode = ?';
+  const params = [auditCode];
+  const results = await executeSelect(query, params);
+  return results.length > 0 ? results[0].Signature : null;
+};
+
+const insertAuditSignature = async (auditCode, signature) => {
+  const query =
+    'INSERT INTO tb_audit_signature (AuditCode, Signature) VALUES (?, ?)';
+  const params = [auditCode, signature];
+  await executeTransaction(async tx => {
+    await tx.executeSql(query, params);
+  });
+  console.log('Inserted new audit signature successfully');
+};
+
+const updateAuditSignature = async (auditCode, signature) => {
+  const query =
+    'UPDATE tb_audit_signature SET Signature = ? WHERE AuditCode = ?';
+  const params = [signature, auditCode];
+  await executeTransaction(async tx => {
+    await tx.executeSql(query, params);
+  });
+  console.log('Updated audit signature successfully');
+};
+
+const deleteAuditSignature = async AuditCode => {
+  try {
+    await executeTransaction(async tx => {
+      const query = 'DELETE FROM tb_audit_signature WHERE AuditCode = ?';
+      const params = [AuditCode];
+      await tx.executeSql(query, params);
+      console.log(
+        'Audit signature deleted successfully for AuditCode:',
+        AuditCode,
+      );
+    });
+  } catch (error) {
+    console.error('Error deleting audit signature:', error);
+    throw error;
+  }
+};
+
+const upsertSignature = async (auditCode, signature) => {
+  const existingSignature = await getAuditSignature(auditCode);
+  if (existingSignature === null) {
+    await insertAuditSignature(auditCode, signature);
+    console.log('Signature inserted for the first time.');
+  } else {
+    await updateAuditSignature(auditCode, signature);
+    console.log('Existing signature updated.');
+  }
+};
+
+
 // PresentClients
 async function savePresentClient(clientName, AuditId) {
   const query = 'INSERT INTO tb_presentclients (name, AuditId) VALUES (?, ?)';
@@ -1642,4 +1699,7 @@ export {
   //deletes
   deleteError,
   deletePresentClient,
+  deleteAuditSignature,
+  // Upserts
+  upsertSignature,
 };
