@@ -33,11 +33,10 @@ import userManager from '../services/UserManager';
 const AuditDetails = ({route, navigation}) => {
   const theme = useTheme();
   const scrollViewRef = useRef();
+  const signatureRef = useRef(null);
   const isFocused = useIsFocused();
   //
-  const {AuditId} = route.params;
-  const {clientName} = route.params;
-  const {user} = route.params;
+  const {AuditId, clientName, user} = route.params;
   //
   const [loading, setLoading] = useState(false);
   const [audit, setAudit] = useState({});
@@ -45,7 +44,10 @@ const AuditDetails = ({route, navigation}) => {
   const [signature, setSignature] = useState(null);
   const [kpiElements, setKpiElements] = useState([]);
   //  
+  const [signatureSaved, setSignatureSaved] = useState(false);
+  const [ready, setReady] = useState(false);
   const [remarkModalVisible, setRemarkModalVisible] = useState(false);
+  const [uploadModalVisible, setUploadModalVisible] = useState(false);
   const [currentKPI, setCurrentKPI] = useState({});
   
   const backgroundColor = useColorModeValue(
@@ -94,8 +96,8 @@ const AuditDetails = ({route, navigation}) => {
           ) || {CounterElements: 0};
           return {...cat, CounterElements: counter.CounterElements};
         });
-        console.log('all ' + all[0].Min);
-        console.log('Categories and Counters: ', JSON.stringify(all)); 
+        // console.log('all ' + all[0].Min);
+        // console.log('Categories and Counters: ', JSON.stringify(all)); 
         setCategories(all);
         setLoading(false);
       })
@@ -108,7 +110,7 @@ const AuditDetails = ({route, navigation}) => {
       .getAllElements(AuditId)
       .then(elements => 
         {setKpiElements(elements);
-        console.log('Get KPI Elements ' + JSON.stringify(elements));
+        // console.log('Get KPI Elements ' + JSON.stringify(elements));
       })
       .catch(error => console.error(error));
   };
@@ -154,18 +156,82 @@ const AuditDetails = ({route, navigation}) => {
     setRemarkModalVisible(false);
   };
 
-  const handleSignature = signature => {
+  const handleSignature = async (signature) => {
     setSignature(signature);
+    try {
+      await database.upsertSignature(audit.AuditCode, signature); // Make sure to await the promise
+      setSignatureSaved(true);
+      setReady(true);
+      console.log('Audit signature operation completed successfully.');
+    } catch (error) {
+      console.error('Error performing audit signature operation:', error);
+    }
   };
 
-  const handleClearSignature = () => {
-    setSignature(null);
+  const handleClearSignature = async () => {
+    console.log('Attempting to clear signature'); // Log when attempting to clear
+
+    if (signatureRef.current) {
+      signatureRef.current.clearSignature(); // Clear the signature canvas
+      console.log('Signature canvas cleared'); // Confirm canvas clear
+    }
+
+    if (signature !== null) {
+      setSignature(null); // Only update state if necessary
+      console.log('Signature state cleared'); // Confirm state clear
+
+      // Assuming 'auditCode' is available in your component's state or derived from props
+      if (audit && audit.AuditCode) {
+        try {
+          await database.deleteAuditSignature(audit.AuditCode);
+          console.log(
+            'Audit signature deleted successfully for AuditCode:',
+            audit.AuditCode,
+          );
+        } catch (error) {
+          console.error('Error deleting audit signature:', error);
+        }
+      } else {
+        console.log(
+          'No AuditCode available, cannot delete signature from database',
+        );
+      }
+    }
+    setSignatureSaved(false);
+    setReady(false);
   };
+
+  const saveSignature = () => {
+    signatureRef.current.readSignature();
+  };    
 
   const disableScroll = () =>
     scrollViewRef.current.setNativeProps({scrollEnabled: false});
   const enableScroll = () =>
     scrollViewRef.current.setNativeProps({scrollEnabled: true}); 
+
+  const isUploadReady = () => {
+    return ready == true && signatureSaved === true; 
+  }
+
+  const uncomplete = () => {
+    setUploadModalVisible(false); // Initially set the modal to not visible
+    console.log('fff');
+    for (let i = categories.length - 1; i >= 0; i--) {
+      if (
+        parseInt(categories[i].CounterElements, 10) <
+        parseInt(categories[i].Min, 10)
+      ) {
+        setUploadModalVisible(true); // Open the modal if condition is met
+        return;
+      }
+    }
+    // getFormsToSubmit(); // Continue with form submission if all checks pass
+  };
+// const uncomplete = () => {
+//   console.log('Upload button pressed');
+//   setUploadModalVisible(true);
+// };  
 
   const signatureStyle = `
     .m-signature-pad {
@@ -295,25 +361,31 @@ const AuditDetails = ({route, navigation}) => {
         shadow="1"
         mt={2}
         rounded={'xs'}>
-        <View
-          style={{height: 120, marginTop: 5, overflow: 'hidden'}}
-          onTouchStart={disableScroll}
-          onTouchEnd={enableScroll}>
-          <Signature
-            onOK={handleSignature}
-            onClear={handleClearSignature}
-            descriptionText="Sign Below"
-            clearText="Clear"
-            confirmText="Save Signature"
-            webStyle={signatureStyle}
-          />
-        </View>
-        {signature && (
+        {signature ? (
           <Image
+            alt="signature"
             resizeMode="contain"
             source={{uri: signature}}
-            style={{width: '100%', height: 100}}
+            style={{
+              width: '100%',
+              height: 120,
+              borderWidth: 1,
+              borderColor: '#ccc',
+              borderRadius: 5,
+              overflow: 'hidden', // Ensure the image does not leak outside the container
+              backgroundColor: 'white', // Adds background color to differentiate from empty state
+            }}
           />
+        ) : (
+          <View style={{height: 120, marginTop: 5, overflow: 'hidden'}}>
+            <Signature
+              ref={signatureRef}
+              onOK={handleSignature}
+              onBegin={disableScroll}
+              onEnd={enableScroll}
+              webStyle={signatureStyle}
+            />
+          </View>
         )}
         <HStack flex={1} space={2}>
           <Button
@@ -325,23 +397,30 @@ const AuditDetails = ({route, navigation}) => {
               theme.colors.fdis[600],
             )}
             _text={{color: 'white'}}>
-            Clear Signature
+            Handtekening wissen
           </Button>
           <Button
             flex={1}
             mt="2"
-            onPress={() => console.log('Uploading signature...')}
+            onPress={saveSignature}
             bg={useColorModeValue(
               theme.colors.fdis[400],
               theme.colors.fdis[600],
             )}
             _text={{color: 'white'}}>
-            Upload Signature
+            Handtekening opslaan
           </Button>
         </HStack>
+        <UploadModal
+          isOpen={uploadModalVisible}
+          onClose={() => setUploadModalVisible(false)}
+          onConfirm={() => console.log('Confirm upload')}
+        />
         <Button
           mt="2"
-          onPress={() => console.log('Uploading signature...')}
+          isDisabled={!isUploadReady()}
+          onPress={uncomplete}
+          success={true}
           bg={useColorModeValue(theme.colors.fdis[400], theme.colors.fdis[600])}
           _text={{color: 'white'}}>
           Uploaden
@@ -429,7 +508,6 @@ const CategoryCard = ({category, cardBackgroundColor, key}) => {
 const KpiRow = ({kpi, onChange, openRemarkModal, cardBackgroundColor}) => {
   const textColor = useColorModeValue('coolGray.800', 'white'); // Text color
   const borderColor = useColorModeValue('gray.300', 'white'); // Border color
-  console.log('kpi : ' + JSON.stringify(kpi, null, 2));
   return (
     <Box
       bg={cardBackgroundColor}
@@ -548,6 +626,32 @@ const onStartResumeClick = ({AuditId, navigation, audit, user, clientName}) => {
     .catch(console.error);
 };
 
+const UploadModal = ({isOpen, onClose, onConfirm}) => {
 
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} size="lg">
+      <Modal.Content>
+        <Modal.CloseButton />
+        <Modal.Header>Waarschuwing!</Modal.Header>
+        <Modal.Body>
+          <Text>
+            Het vereiste aantal elementen komt niet overeen met uw telling. Weet
+            u zeker dat u deze audit wilt uploaden?
+          </Text>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button.Group space={2}>
+            <Button variant="ghost" onPress={onClose}>
+              Annuleer
+            </Button>
+            <Button onPress={onConfirm} colorScheme="blue">
+              Ok
+            </Button>
+          </Button.Group>
+        </Modal.Footer>
+      </Modal.Content>
+    </Modal>
+  );
+};
 
 export default AuditDetails;

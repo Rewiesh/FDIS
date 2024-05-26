@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import React, {useState, useEffect} from 'react';
 import {
   useTheme,
@@ -43,42 +44,29 @@ const Login = ({navigation}) => {
     redirectUser();
   }, []);
 
-  // .fetchAudits(username, password)
-  // .then(data => database.saveAllData(data))
-  // .then(() => userManager.setCurrentUser(username, password))
-  // .then(() => navigation.replace('MyTabs'))
-  // .then(() => navigation.navigate('MyTabs'))
-    // api
-    //   .fetchData(username, password)
-    //   .catch(error => {
-    //     console.error('Login failed', error);
-    //     alert(error.message);
-    //   })
-    //   .finally(() => setIsLoading(false));
-
-  const loginUser = () => {
+  const loginUser = async () => {
     setIsLoading(true);
-    fetchData(username, password)
-      .then(({data, error}) => {
-        if (error) {
-          // console.error('Login failed', error);
-          // Using NativeBase Toast to show error
-          ShowToast({
-            status: 'error',
-            message: 'Ongeldige inloggegevens.',
-            bgColor: bgColor,
-            textColor: textColor,
-          });
-        } else {
-          database.InitializeDatabase();
-          database.saveAllData(data);
-          userManager.setCurrentUser(username, password);
-          navigation.replace('MyTabs');
-        }
-      })
-      .finally(() => {
-        setIsLoading(false); // Reset loading state irrespective of success/failure
-      });
+    try {
+      const {data, error} = await fetchData(username, password);
+      if (error) {
+        // Using NativeBase Toast to show error
+        ShowToast({
+          status: 'error',
+          message: 'Ongeldige inloggegevens.',
+          bgColor: bgColor,
+          textColor: textColor,
+        });
+      } else {
+        await database.InitializeDatabase(); // Ensure database is initialized before proceeding
+        await database.saveAllData(data); // Save all data to the database
+        userManager.setCurrentUser(username, password); // Set the current user
+        navigation.replace('MyTabs'); // Navigate to 'MyTabs'
+      }
+    } catch (error) {
+      console.error('Error during login:', error);
+    } finally {
+      setIsLoading(false); // Reset loading state irrespective of success/failure
+    }
   };
 
   if (isLoading) {
@@ -92,7 +80,7 @@ const Login = ({navigation}) => {
         <Text
           color={useColorModeValue(theme.colors.fdis[400], 'white')}
           fontSize="md">
-          Laden...
+          Klanten worden opgehaald...
         </Text>
       </Center>
     );

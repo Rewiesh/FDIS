@@ -117,11 +117,11 @@ const Settings = ({navigation}) => {
           onSelectPicture={onSelectPicture}
           selectedPicture={selectedPicture}
         />
-        <ThemeToggle
+        {/* <ThemeToggle
           colorMode={colorMode}
           toggleColorMode={toggleColorMode}
           updateUserSettings={updateUserSettings}
-        />
+        /> */}
         <SettingsOption
           title="Uitgevoerde Audits"
           description={`Totaal uitgevoerde audits: ${performedAuditsCount}`}

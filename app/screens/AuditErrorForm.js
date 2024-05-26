@@ -1,12 +1,7 @@
 import React, {useState, useEffect, useCallback} from 'react';
-import {
-  TouchableOpacity,
-  SafeAreaView,
-  Alert,
-} from 'react-native';
+import {TouchableOpacity, SafeAreaView, Alert, FlatList} from 'react-native';
 import {
   Button,
-  ScrollView,
   Box,
   Text,
   Select,
@@ -25,7 +20,7 @@ import {launchImageLibrary, launchCamera} from 'react-native-image-picker';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import * as database from '../services/database/database1';
 
-const AuditErrorForm = ({ navigation, route }) => {
+const AuditErrorForm = ({navigation, route}) => {
   const theme = useTheme();
   const [error, setError] = useState(route.params?.error || {});
   const [errorTypes, setErrorTypes] = useState([]);
@@ -37,7 +32,7 @@ const AuditErrorForm = ({ navigation, route }) => {
   const backgroundColor = useColorModeValue(
     'coolGray.50',
     theme.colors.fdis[1100],
-  ); // Adjust for light and dark modes
+  );
   const cardBackgroundColor = useColorModeValue(
     'gray.100',
     theme.colors.fdis[900],
@@ -73,27 +68,27 @@ const AuditErrorForm = ({ navigation, route }) => {
   const getElementText = value => {
     const element = elements.find(e => e.Id === value);
     return element ? element.ElementTypeValue : null;
-  };  
+  };
 
-  const onElementChange = (value) => {
+  const onElementChange = value => {
     const updatedError = {
       ...error,
       ElementTypeId: value,
-      ElementTypeText: getElementText(value)
+      ElementTypeText: getElementText(value),
     };
     setError(updatedError);
   };
 
-  const getErrorTypeText = (value) => {
+  const getErrorTypeText = value => {
     const errorType = errorTypes.find(e => e.Id === value);
     return errorType ? errorType.ErrorTypeValue : null;
   };
 
-  const onErrorTypeChange = (value) => {
+  const onErrorTypeChange = value => {
     const updatedError = {
       ...error,
       ErrorTypeId: value,
-      ErrorTypeText: getErrorTypeText(value)
+      ErrorTypeText: getErrorTypeText(value),
     };
     setError(updatedError);
   };
@@ -112,7 +107,7 @@ const AuditErrorForm = ({ navigation, route }) => {
       TechnicalAspects: value,
     };
     setError(updatedError);
-  };  
+  };
 
   const onSaveLogBookImage = imageUri => {
     const updatedError = {
@@ -120,7 +115,9 @@ const AuditErrorForm = ({ navigation, route }) => {
       LogBookImg: imageUri,
     };
     setError(updatedError);
-    console.log('Error after adding logbook image :'+ JSON.stringify(error, null, 2));
+    console.log(
+      'Error after adding logbook image :' + JSON.stringify(error, null, 2),
+    );
   };
 
   const onDeleteLogBookImage = () => {
@@ -144,7 +141,7 @@ const AuditErrorForm = ({ navigation, route }) => {
       'Error after adding TechnicalAspectsImg image :' +
         JSON.stringify(error, null, 2),
     );
-  }; 
+  };
 
   const onDeleteTechnicalAspectImage = () => {
     const updatedError = {
@@ -153,9 +150,10 @@ const AuditErrorForm = ({ navigation, route }) => {
     };
     setError(updatedError);
     console.log(
-      'Error after deleting TechnicalAspectsImg image :' + JSON.stringify(error, null, 2),
+      'Error after deleting TechnicalAspectsImg image :' +
+        JSON.stringify(error, null, 2),
     );
-  };  
+  };
 
   const saveError = useCallback(async () => {
     console.log('Attempting to save error', error);
@@ -190,69 +188,98 @@ const AuditErrorForm = ({ navigation, route }) => {
     navigation,
   ]);
 
-  return (
-    <Box flex={1}>
-      <ScrollView
-        flex={1}
-        bg="coolGray.50"
-        _contentContainerStyle={{
-          p: '2',
-          mb: '4',
-          pb: '75',
-        }}>
-        <ElementPicker
-          elements={elements}
-          selectedElement={error.ElementTypeId}
-          onElementChange={onElementChange}
-        />
-        <ErrorTypePicker
-          errorTypes={errorTypes}
-          selectedErrorType={error.ErrorTypeId}
-          onErrorTypeChange={onErrorTypeChange}
-        />
-        <ErrorCounter count={countError} setCount={setCountError} />
-        <LogBook
-          countError={countError}
-          error={error}
-          onLogBookChange={onLogBookChange}
-          setModalLogBookVisible={setModalLogBookVisible}
-        />
-        <TechnicalAspects
-          countError={countError}
-          error={error}
-          onTechnicalAspectsChange={onTechnicalAspectsChange}
-          setModalTechVisible={setModalTechVisible}
-        />
-        {/* Modals */}
-        <RenderModalLogBook
-          modalLogBookVisible={modalLogBookVisible}
-          setModalLogBookVisible={setModalLogBookVisible}
-          error={error}
-          onSaveLogBookImage={onSaveLogBookImage}
-          onDeleteLogBookImage={onDeleteLogBookImage}
-        />
-        <RenderModalTechnicalAspects
-          modalTechVisible={modalTechVisible}
-          setModalTechVisible={setModalTechVisible}
-          error={error}
-          onSaveTechnicalAspectImage={onSaveTechnicalAspectImage}
-          onDeleteTechnicalAspectImage={onDeleteTechnicalAspectImage}
-        />
-        {countError > 0 && (
-          <Button
-            mt="2"
-            bg={useColorModeValue(
-              theme.colors.fdis[400],
-              theme.colors.fdis[600],
-            )}
-            _text={{color: 'white'}}
-            onPress={saveError}>
-            Opslaan
-          </Button>
+  const renderItem = ({item}) => {
+    return (
+      <Box key={item.id}>
+        {item.type === 'ElementPicker' && (
+          <ElementPicker
+            elements={elements}
+            selectedElement={error.ElementTypeId}
+            onElementChange={onElementChange}
+          />
         )}
-      </ScrollView>
+        {item.type === 'ErrorTypePicker' && (
+          <ErrorTypePicker
+            errorTypes={errorTypes}
+            selectedErrorType={error.ErrorTypeId}
+            onErrorTypeChange={onErrorTypeChange}
+          />
+        )}
+        {item.type === 'ErrorCounter' && (
+          <ErrorCounter count={countError} setCount={setCountError} />
+        )}
+        {item.type === 'LogBook' && (
+          <LogBook
+            countError={countError}
+            error={error}
+            onLogBookChange={onLogBookChange}
+            setModalLogBookVisible={setModalLogBookVisible}
+          />
+        )}
+        {item.type === 'TechnicalAspects' && (
+          <TechnicalAspects
+            countError={countError}
+            error={error}
+            onTechnicalAspectsChange={onTechnicalAspectsChange}
+            setModalTechVisible={setModalTechVisible}
+          />
+        )}
+      </Box>
+    );
+  };
+
+  const formItems = [
+    {id: '1', type: 'ElementPicker'},
+    {id: '2', type: 'ErrorTypePicker'},
+    {id: '3', type: 'ErrorCounter'},
+    {id: '4', type: 'LogBook'},
+    {id: '5', type: 'TechnicalAspects'},
+  ];
+
+  return (
+    <Box
+      flex={1}
+      _contentContainerStyle={{
+        p: '2',
+        mb: '50',
+        pb: '75',
+      }}>
+      <FlatList
+        data={formItems}
+        renderItem={renderItem}
+        keyExtractor={item => item.id}
+        contentContainerStyle={{
+          padding: 8,
+        }}
+      />
+      <RenderModalLogBook
+        modalLogBookVisible={modalLogBookVisible}
+        setModalLogBookVisible={setModalLogBookVisible}
+        error={error}
+        onSaveLogBookImage={onSaveLogBookImage}
+        onDeleteLogBookImage={onDeleteLogBookImage}
+      />
+      <RenderModalTechnicalAspects
+        modalTechVisible={modalTechVisible}
+        setModalTechVisible={setModalTechVisible}
+        error={error}
+        onSaveTechnicalAspectImage={onSaveTechnicalAspectImage}
+        onDeleteTechnicalAspectImage={onDeleteTechnicalAspectImage}
+      />
+      {countError > 0 && (
+        <Button
+          mt="2"
+          mb="75"
+          mr="2"
+          ml="2"
+          bg={useColorModeValue(theme.colors.fdis[400], theme.colors.fdis[600])}
+          _text={{color: 'white'}}
+          onPress={saveError}>
+          Opslaan
+        </Button>
+      )}
     </Box>
-  );  
+  );
 };
 
 const ElementPicker = ({selectedElement, elements, onElementChange}) => {
@@ -284,7 +311,11 @@ const ElementPicker = ({selectedElement, elements, onElementChange}) => {
   );
 };
 
-const ErrorTypePicker = ({selectedErrorType, errorTypes, onErrorTypeChange}) => {
+const ErrorTypePicker = ({
+  selectedErrorType,
+  errorTypes,
+  onErrorTypeChange,
+}) => {
   return (
     <Box>
       <Text fontSize="md" mb="1" bold>
@@ -374,8 +405,8 @@ const LogBook = ({
         value={error.LogBook || ''}
         onChangeText={onLogBookChange}
         placeholder="Voer logboek in..."
-        height={100} 
-        numberOfLines={4} 
+        height={100}
+        numberOfLines={4}
       />
     </Box>
   ) : null;
@@ -407,7 +438,7 @@ const TechnicalAspects = ({
         value={error.TechnicalAspects || ''}
         onChangeText={onTechnicalAspectsChange}
         placeholder="Voer technische aspecten in...."
-        height={100} 
+        height={100}
         numberOfLines={4}
       />
     </Box>
@@ -438,8 +469,7 @@ const RenderModalLogBook = ({
       <Modal
         isOpen={modalLogBookVisible}
         onClose={() => setModalLogBookVisible(false)}
-        size="xl" 
-      >
+        size="xl">
         <Modal.Content>
           <Modal.CloseButton />
           <Modal.Header>Foto</Modal.Header>
@@ -453,7 +483,7 @@ const RenderModalLogBook = ({
           <Modal.Footer>
             <Button.Group space={1} justifyContent="center">
               <Button
-                size="sm" 
+                size="sm"
                 variant="ghost"
                 colorScheme="blueGray"
                 onPress={() => setModalLogBookVisible(false)}
@@ -462,7 +492,7 @@ const RenderModalLogBook = ({
               </Button>
               {error.LogBookImg && (
                 <Button
-                  size="sm" 
+                  size="sm"
                   colorScheme="red"
                   onPress={handleDeleteImage}
                   leftIcon={
@@ -472,7 +502,7 @@ const RenderModalLogBook = ({
                 </Button>
               )}
               <Button
-                size="sm" 
+                size="sm"
                 onPress={handleSaveImage}
                 leftIcon={<Icon as={MaterialIcons} name="save" size="xs" />}>
                 Opslaan
@@ -567,7 +597,7 @@ const PicturePicker = ({onSelectImage, error, modalType}) => {
     } else if (error.RemarksImg && modalType === 'remarks') {
       setFilePath(error.RemarksImg);
     }
-  }, [error.LogBookImage, error.TechnicalAspectsImg, error.RemarksImg]);  
+  }, [error.LogBookImage, error.TechnicalAspectsImg, error.RemarksImg]);
 
   const chooseFile = () => {
     Alert.alert(
@@ -644,4 +674,3 @@ const PicturePicker = ({onSelectImage, error, modalType}) => {
 };
 
 export default AuditErrorForm;
-

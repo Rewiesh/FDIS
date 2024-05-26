@@ -77,30 +77,31 @@ const Clients = ({navigation}) => {
   const reloadData = async () => {
     setLoaded(false);
     setRefreshing(true); // Activate the loading indicator
+
     try {
       const user = await userManager.getCurrentUser();
-      fetchData(user.username, user.password).then(({data, error}) => {
-        if (error) {
-          ShowToast({
-            status: 'error',
-            message: 'Ongeldige inloggegevens.',
-            bgColor: bgColor,
-            textColor: textColor,
-          });
-        } else {
-          database.saveAllData(data);
-        }
-      });
+      const {data, error} = await fetchData(user.username, user.password);
+
+      if (error) {
+        ShowToast({
+          status: 'error',
+          message: 'Ongeldige inloggegevens.',
+          bgColor: bgColor,
+          textColor: textColor,
+        });
+      } else {
+        await database.saveAllData(data);
+      }
+
       await loadClients();
-      setRefreshing(false); 
       setLoaded(true);
     } catch (error) {
       console.log(error);
       alert('Check your internet connection');
-      setRefreshing(false); 
+    } finally {
+      setRefreshing(false); // Reset the refreshing state
     }
-  };  
-
+  };
 
   if (!loaded) {
     return (
@@ -112,7 +113,7 @@ const Clients = ({navigation}) => {
             accessibilityLabel="Haal actieve klanten op"
           />
           <Heading color={textColor} fontSize="md">
-            Laden
+            Klanten worden opgehaald...
           </Heading>
         </HStack>
       </Center>

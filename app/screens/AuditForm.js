@@ -1,5 +1,8 @@
 import React, {useState, useEffect} from 'react';
 import {
+  KeyboardAvoidingView,
+} from 'react-native';
+import {
   Button,
   ScrollView,
   Box,
@@ -88,70 +91,75 @@ const AuditForm = ({navigation, route}) => {
   };
 
   return (
-    <ScrollView
-      flex={1}
-      bg={bgColor}
-      _contentContainerStyle={{
-        p: '2',
-        mb: '4',
-        pb: '75',
-      }}>
-      <RenderInfo
-        infoLabel="Categorie"
-        info={category.CategoryValue}
-        textColor={textColor}
-        borderColor={borderColor}
-      />
-      <RenderInfo
-        infoLabel="Verdieping"
-        info={floor.FloorValue}
-        textColor={textColor}
-        borderColor={borderColor}
-      />
-      <RenderInfo
-        infoLabel="Ruimte Omschrijving"
-        info={area.AreaValue}
-        textColor={textColor}
-        borderColor={borderColor}
-      />
-      <RenderInfo
-        infoLabel="Ruimtenummer"
-        info={form.AreaNumber}
-        textColor={textColor}
-        borderColor={borderColor}
-      />
-      <RenderInfo
-        infoLabel="TEL-ELEMENT"
-        info={form.CounterElements}
-        textColor={textColor}
-        borderColor={borderColor}
-      />
-      <RenderInfo
-        infoLabel="Fouten"
-        info={errorsCount}
-        textColor={textColor}
-        borderColor={borderColor}
-      />
-      <RenderInput
-        textColor={textColor}
-        value={opmerkingen}
-        onChange={onChangeOpmerking}
-      />
-      <Button
-        mt="2"
-        bg={useColorModeValue(theme.colors.fdis[400], theme.colors.fdis[600])}
-        _text={{color: 'white'}}
-        onPress={onStartAuditClick}>
-        Audit Starten
-      </Button>
-      <Button
-        mt="2"
-        bg={useColorModeValue(theme.colors.fdis[400], theme.colors.fdis[600])}
-        _text={{color: 'white'}}
-        onPress={onOpslaanClick}>
-        Opslaan
-      </Button>
-    </ScrollView>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{flex: 1}}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>   
+      <ScrollView
+        flex={1}
+        bg={bgColor}
+        _contentContainerStyle={{
+          p: '2',
+          mb: '4',
+          pb: '75',
+        }}>
+        <RenderInfo
+          infoLabel="Categorie"
+          info={category.CategoryValue}
+          textColor={textColor}
+          borderColor={borderColor}
+        />
+        <RenderInfo
+          infoLabel="Verdieping"
+          info={floor.FloorValue}
+          textColor={textColor}
+          borderColor={borderColor}
+        />
+        <RenderInfo
+          infoLabel="Ruimte Omschrijving"
+          info={area.AreaValue}
+          textColor={textColor}
+          borderColor={borderColor}
+        />
+        <RenderInfo
+          infoLabel="Ruimtenummer"
+          info={form.AreaNumber}
+          textColor={textColor}
+          borderColor={borderColor}
+        />
+        <RenderInfo
+          infoLabel="TEL-ELEMENT"
+          info={form.CounterElements}
+          textColor={textColor}
+          borderColor={borderColor}
+        />
+        <RenderInfo
+          infoLabel="Fouten"
+          info={errorsCount}
+          textColor={textColor}
+          borderColor={borderColor}
+        />
+        <RenderInput
+          textColor={textColor}
+          value={opmerkingen}
+          onChange={onChangeOpmerking}
+        />
+        <Button
+          mt="2"
+          bg={useColorModeValue(theme.colors.fdis[400], theme.colors.fdis[600])}
+          _text={{color: 'white'}}
+          onPress={onStartAuditClick}>
+          Audit Starten
+        </Button>
+        <Button
+          mt="2"
+          bg={useColorModeValue(theme.colors.fdis[400], theme.colors.fdis[600])}
+          _text={{color: 'white'}}
+          onPress={onOpslaanClick}>
+          Opslaan
+        </Button>
+      </ScrollView>
+    </KeyboardAvoidingView> 
   );
 };
 

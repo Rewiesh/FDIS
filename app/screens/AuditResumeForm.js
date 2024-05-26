@@ -1,11 +1,8 @@
 import React, {useState, useEffect} from 'react';
-import {
-  KeyboardAvoidingView,
-  Keyboard,
-} from 'react-native';
+import {KeyboardAvoidingView, Keyboard} from 'react-native';
 import {
   Button,
-  ScrollView,
+  FlatList,
   Box,
   VStack,
   Text,
@@ -14,7 +11,6 @@ import {
   Input,
   useColorModeValue,
   useTheme,
-  Pressable,
 } from 'native-base';
 import * as database from '../services/database/database1';
 import {useIsFocused} from '@react-navigation/native';
@@ -43,7 +39,6 @@ const AuditResumeForm = ({route, navigation}) => {
   const fetchFormData = async () => {
     try {
       const lastCompletedForm = await database.getLastCompletedForm(audit.Id);
-      console.log('lastCompletedForm.formId' + JSON.stringify(lastCompletedForm, null, 2));
       if (lastCompletedForm != null) {
         const updatedForm = {
           ...form,
@@ -51,7 +46,6 @@ const AuditResumeForm = ({route, navigation}) => {
           CategoryId: lastCompletedForm.CategoryId,
           FloorId: lastCompletedForm.FloorId,
         };
-        console.log('updatedForm' + JSON.stringify(updatedForm, null, 2));
         setForm(updatedForm);
         invalidateAreas(lastCompletedForm.CategoryId);
       }
@@ -74,27 +68,25 @@ const AuditResumeForm = ({route, navigation}) => {
 
   const onCategoryChanged = async value => {
     const updatedForm = {...form, CategoryId: value};
-    setForm(updatedForm); // Update the form state
+    setForm(updatedForm);
 
     try {
       const fetchedAreas = await database.getAreasbyCategories2(value);
-      setAreas(fetchedAreas); 
+      setAreas(fetchedAreas);
     } catch (error) {
       console.error('Error fetching areas:', error);
     }
-  };  
+  };
 
   const onFloorChange = async value => {
     const updatedForm = {...form, FloorId: value};
-    console.log('Selected FloorId ID:', value);
     setForm(updatedForm);
-  };    
+  };
 
   const onAreaChange = async value => {
     const updatedForm = {...form, AreaCode: value};
-    console.log('Selected AreaCode ID:', value);
-    setForm(updatedForm); 
-  };    
+    setForm(updatedForm);
+  };
 
   const isFormCompleted = () => {
     return (
@@ -123,7 +115,7 @@ const AuditResumeForm = ({route, navigation}) => {
           currentDate.getSeconds(),
           currentDate.getMilliseconds(),
         ),
-      ).toISOString(), 
+      ).toISOString(),
     };
 
     try {
@@ -138,7 +130,7 @@ const AuditResumeForm = ({route, navigation}) => {
         savedForm = await database.saveForm(formToSave);
         await database.setAuditUnsaved(audit.Id, true);
       }
-      
+
       navigation.replace('Audit Formulier', {form: savedForm});
       navigation.navigate('Fouten Lijst', {form: savedForm});
     } catch (error) {
@@ -146,49 +138,91 @@ const AuditResumeForm = ({route, navigation}) => {
     }
   };
 
+  const renderFormItem = ({item}) => {
+    switch (item.type) {
+      case 'ClientInfo':
+        return (
+          <ClientInfo
+            clientName={audit.NameClient}
+            textColor={textColor}
+            borderColor={borderColor}
+          />
+        );
+      case 'AuditCodeInfo':
+        return (
+          <AuditCodeInfo
+            auditCode={audit.AuditCode}
+            textColor={textColor}
+            borderColor={borderColor}
+          />
+        );
+      case 'CategoryPicker':
+        return (
+          <CategoryPicker
+            categories={categories}
+            selectedCategory={form.CategoryId}
+            onCategoryChange={onCategoryChanged}
+            textColor={textColor}
+          />
+        );
+      case 'FloorPicker':
+        return (
+          <FloorPicker
+            floors={floors}
+            selectedFloor={form.FloorId}
+            onFloorChange={onFloorChange}
+            textColor={textColor}
+          />
+        );
+      case 'AreaDescriptionPicker':
+        return (
+          <AreaDescriptionPicker
+            areas={areas}
+            selectedArea={form.AreaCode}
+            onAreaChange={onAreaChange}
+            textColor={textColor}
+          />
+        );
+      case 'AreaNumber':
+        return (
+          <AreaNumber form={form} setForm={setForm} textColor={textColor} />
+        );
+      case 'CounterElements':
+        return (
+          <CounterElements
+            form={form}
+            setForm={setForm}
+            textColor={textColor}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
+  const formItems = [
+    {type: 'ClientInfo'},
+    {type: 'AuditCodeInfo'},
+    {type: 'CategoryPicker'},
+    {type: 'FloorPicker'},
+    {type: 'AreaDescriptionPicker'},
+    {type: 'AreaNumber'},
+    {type: 'CounterElements'},
+  ];
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={{flex: 1}}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
-      <ScrollView
-        flex={1}
-        bg={bgColor}
-        _contentContainerStyle={{
-          p: '2',
-          mb: '4',
-          pb: '75',
-        }}>
-        <ClientInfo
-          clientName={audit.NameClient}
-          textColor={textColor}
-          borderColor={borderColor}
-        />
-        <AuditCodeInfo
-          auditCode={audit.AuditCode}
-          textColor={textColor}
-          borderColor={borderColor}
-        />
-        <CategoryPicker
-          categories={categories}
-          selectedCategory={form.CategoryId}
-          onCategoryChange={onCategoryChanged}
-          textColor={textColor}
-        />
-        <FloorPicker
-          floors={floors}
-          selectedFloor={form.FloorId}
-          onFloorChange={onFloorChange}
-          textColor={textColor}
-        />
-        <AreaDescriptionPicker
-          areas={areas}
-          selectedArea={form.AreaCode}
-          onAreaChange={onAreaChange}
-          textColor={textColor}
-        />
-        <AreaNumber form={form} setForm={setForm} textColor={textColor} />
-        <CounterElements form={form} setForm={setForm} textColor={textColor} />
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 20}>
+      <FlatList
+        data={formItems}
+        keyExtractor={(item, index) => index.toString()}
+        renderItem={renderFormItem}
+        contentContainerStyle={{padding: 16}}
+        style={{flex: 1, backgroundColor: bgColor}}
+      />
+      <Box padding={4} backgroundColor={bgColor}>
         <Button
           isDisabled={!isFormCompleted()}
           mt="2"
@@ -197,7 +231,7 @@ const AuditResumeForm = ({route, navigation}) => {
           onPress={onSaveForm}>
           Audit Formulieren
         </Button>
-      </ScrollView>
+      </Box>
     </KeyboardAvoidingView>
   );
 };
@@ -339,7 +373,6 @@ const AreaNumber = ({form, setForm, textColor}) => {
 
 const CounterElements = ({form, setForm, textColor}) => {
   const handleTextChange = text => {
-    // This regex will allow only numbers
     const filteredText = text.replace(/[^0-9]/g, '');
     setForm({...form, CounterElements: filteredText});
   };
@@ -350,7 +383,7 @@ const CounterElements = ({form, setForm, textColor}) => {
         Tel-Elementen
       </Text>
       <Input
-        keyboardType="numeric" // Brings up numeric keypad
+        keyboardType="numeric"
         style={{height: 40, backgroundColor: '#fff', color: textColor}}
         onChangeText={handleTextChange}
         value={form.CounterElements}
